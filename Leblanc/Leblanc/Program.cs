@@ -386,14 +386,14 @@ namespace Leblanc
         }
         public static void CheckR()
         {
-            string x = Player.Spellbook.GetSpell(SpellSlot.R).Name;
+            string x = Player.Spellbook.GetSpell(SpellSlot.R).Name;          
             if (x == "LeblancChaosOrbM")
                 Rstate = 1;
             if (x == "LeblancSlideM")
                 Rstate = 2;
             if (x == "LeblancSoulShackleM")
                 Rstate = 3;
-            if (x == "leblancslidereturnm")
+            if (x == "LeblancSlideReturnM")
             {
                 Rstate = 4;
             }
