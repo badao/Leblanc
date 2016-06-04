@@ -408,7 +408,7 @@ namespace Leblanc
         public static void CheckW()
         {
             string x = Player.Spellbook.GetSpell(SpellSlot.W).Name;
-            if (x == "leblancslidereturn")
+            if (x == "LeblancSlideReturn")
             {
                 Wstate = 2;
             }
