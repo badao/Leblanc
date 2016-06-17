@@ -14,13 +14,13 @@ namespace Leblanc
     {
         private static Obj_AI_Hero Player { get { return ObjectManager.Player; } }
 
-        private static Orbwalking.Orbwalker Orbwalker;
+        public static Orbwalking.Orbwalker Orbwalker;
 
-        private static Spell Q, W, E, R;
+        public static Spell Q, W, E, R;
 
-        private static Menu Menu;
+        public static Menu Menu;
 
-        private static int Rstate, Wstate, Ecol;
+        public static int Rstate, Wstate, Ecol;
 
         static void Main(string[] args)
         {
@@ -73,6 +73,9 @@ namespace Leblanc
             //spellMenu.AddItem(new MenuItem("useR", "Use R to Farm").SetValue(true));
             //spellMenu.AddItem(new MenuItem("LaughButton", "Combo").SetValue(new KeyBind(32, KeyBindType.Press)));
             //spellMenu.AddItem(new MenuItem("ConsumeHealth", "Consume below HP").SetValue(new Slider(40, 1, 100)));
+            Menu twoChainMenu = Menu.AddSubMenu(new Menu("Two Chains", "Two Chains"));
+            twoChainMenu.AddItem(new MenuItem("Two Chains Active", "Two Chains Active").SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press)));
+            twoChainMenu.AddItem(new MenuItem("Only On Selected Target", "Only On Selected Target").SetValue(true));
 
             Menu.AddToMainMenu();
 
@@ -81,7 +84,11 @@ namespace Leblanc
             Game.OnUpdate += Game_OnGameUpdate;
 
 
-            Game.PrintChat("Welcome to LeblancWorld");
+            Game.PrintChat("Leblanc by badao updated 06/17/16!");
+
+            Game.PrintChat("Visist forum for more information");
+
+            Game.PrintChat("Leave an upvote in database if you like it <3!");
         }
         public static bool WgapCombo { get { return Menu.Item("Use W Combo Gap").GetValue<bool>(); } }
         public static void Game_OnGameUpdate(EventArgs args)
@@ -91,6 +98,24 @@ namespace Leblanc
             if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo)
             {
                 Combo();
+            }
+            if (Menu.Item("Two Chains Active").GetValue<KeyBind>().Active)
+            {
+                Obj_AI_Hero target = null;
+                if (Menu.Item("Only On Selected Target").GetValue<bool>())
+                {
+                    target = TargetSelector.GetSelectedTarget();
+                }
+                else
+                    target = TargetSelector.GetTarget(-1, TargetSelector.DamageType.Physical);
+                if (target.IsValidTarget() && Orbwalking.InAutoAttackRange(target))
+                {
+                    TwoChains.TwoChainsActive(target);
+                }
+                else
+                {
+                    TwoChains.TwoChainsActive(null);
+                }
             }
             if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed)
             {
@@ -167,7 +192,7 @@ namespace Leblanc
             if (Selected())
             {
                 var target = TargetSelector.GetSelectedTarget();
-                if (target != null && target.IsValidTarget(Q.Range))
+                if (target != null && target.IsValidTarget(E.Range))
                 {
                     CastE(target);
                 }
