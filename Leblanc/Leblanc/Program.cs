@@ -21,7 +21,8 @@ namespace Leblanc
         public static Menu Menu;
 
         public static int Rstate, Wstate, Ecol;
-
+        public static string QName = "LeblancQ", WName = "LeblancW", EName = "LeblancE", RName = "LeblancRToggle", QRName = "",
+            WRName = "", ERName = "", RRName = "LeblancR", W2Name = "LeblancWReturn", RW2Name = "LeblancRWReturn";
         static void Main(string[] args)
         {
             CustomEvents.Game.OnGameLoad += Game_OnGameLoad;
@@ -36,13 +37,6 @@ namespace Leblanc
             W = new Spell(SpellSlot.W, 750);
             E = new Spell(SpellSlot.E, 950);
             R = new Spell(SpellSlot.R);
-            if (Rstate == 1)
-                R = new Spell(SpellSlot.R, Q.Range);
-            if (Rstate == 2)
-            {
-                R = new Spell(SpellSlot.R, W.Range);
-                R.SetSkillshot(0, 70, 1500, false, SkillshotType.SkillshotLine);
-            }
 
             //Q.SetSkillshot(300, 50, 2000, false, SkillshotType.SkillshotLine);
             E.SetSkillshot(0.25f, 70, 1600, true, SkillshotType.SkillshotLine);
@@ -60,22 +54,10 @@ namespace Leblanc
             spellMenu.AddItem(new MenuItem("Use W Harass", "Use W Harass").SetValue(true));
             spellMenu.AddItem(new MenuItem("Use W Back Harass", "Use W Back Harass").SetValue(true));
             spellMenu.AddItem(new MenuItem("Use W Combo", "Use W Combo").SetValue(true));
-            spellMenu.AddItem(new MenuItem("Use W Combo Gap", "Use W Combo Gap").SetValue(true));
+            spellMenu.AddItem(new MenuItem("Rmode", "R mode").SetValue(new StringList (new string[] { "Q","W","E","Any"},3)));
             spellMenu.AddItem(new MenuItem("force focus selected", "force focus selected").SetValue(false));
             spellMenu.AddItem(new MenuItem("if selected in :", "if selected in :").SetValue(new Slider(1000, 1000, 1500)));
             spellMenu.AddItem(new MenuItem("QE Selected Target", "QE Selected Target").SetValue(new KeyBind("G".ToCharArray()[0], KeyBindType.Press)));
-            //spellMenu.AddItem(new MenuItem("Use E", "Use E")).SetValue(false);
-            //foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsEnemy))
-            //{
-            //    spellMenu.AddItem(new MenuItem("use R" + hero.SkinName, "use R" + hero.SkinName)).SetValue(true);
-            //}
-
-            //spellMenu.AddItem(new MenuItem("useR", "Use R to Farm").SetValue(true));
-            //spellMenu.AddItem(new MenuItem("LaughButton", "Combo").SetValue(new KeyBind(32, KeyBindType.Press)));
-            //spellMenu.AddItem(new MenuItem("ConsumeHealth", "Consume below HP").SetValue(new Slider(40, 1, 100)));
-            Menu twoChainMenu = Menu.AddSubMenu(new Menu("Two Chains", "Two Chains"));
-            twoChainMenu.AddItem(new MenuItem("Two Chains Active", "Two Chains Active").SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press)));
-            twoChainMenu.AddItem(new MenuItem("Only On Selected Target", "Only On Selected Target").SetValue(true));
 
             Menu.AddToMainMenu();
 
@@ -84,12 +66,13 @@ namespace Leblanc
             Game.OnUpdate += Game_OnGameUpdate;
 
 
-            Game.PrintChat("Leblanc by badao updated 06/17/16!");
+            Game.PrintChat("Leblanc by badao updated 10/11/2016!, updated for Lb REWORK!");
 
             Game.PrintChat("Visist forum for more information");
 
             Game.PrintChat("Leave an upvote in database if you like it <3!");
         }
+        public static int Rmode { get{ return Menu.Item("Rmode").GetValue<StringList>().SelectedIndex; } }
         public static bool WgapCombo { get { return Menu.Item("Use W Combo Gap").GetValue<bool>(); } }
         public static void Game_OnGameUpdate(EventArgs args)
         {
@@ -98,24 +81,6 @@ namespace Leblanc
             if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo)
             {
                 Combo();
-            }
-            if (Menu.Item("Two Chains Active").GetValue<KeyBind>().Active)
-            {
-                Obj_AI_Hero target = null;
-                if (Menu.Item("Only On Selected Target").GetValue<bool>())
-                {
-                    target = TargetSelector.GetSelectedTarget();
-                }
-                else
-                    target = TargetSelector.GetTarget(-1, TargetSelector.DamageType.Physical);
-                if (target.IsValidTarget() && Orbwalking.InAutoAttackRange(target))
-                {
-                    TwoChains.TwoChainsActive(target);
-                }
-                else
-                {
-                    TwoChains.TwoChainsActive(null);
-                }
             }
             if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed)
             {
@@ -133,8 +98,6 @@ namespace Leblanc
                 }
 
             }
-            CheckR();
-            CheckW();
             if (Menu.Item("QE Selected Target").GetValue<KeyBind>().Active)
             {
                 useQE();
@@ -261,10 +224,15 @@ namespace Leblanc
 
         public static void useR()
         {
+            float range = Q.Range;
+            if (Rmode == 2)
+                range = W.Range;
+            if (Rmode == 3)
+                range = E.Range;
             if (Selected())
             {
                 var target = TargetSelector.GetSelectedTarget();
-                if (target != null && target.IsValidTarget(Q.Range))
+                if (target != null && target.IsValidTarget(range))
                 {
                     CastR(target);
                 }
@@ -272,8 +240,8 @@ namespace Leblanc
             }
             else
             {
-                var target = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Magical);
-                if (target != null && target.IsValidTarget(E.Range))
+                var target = TargetSelector.GetTarget(range, TargetSelector.DamageType.Magical);
+                if (target != null && target.IsValidTarget(range))
                 {
                     CastR(target);
                 }
@@ -282,55 +250,33 @@ namespace Leblanc
 
         public static void CastR(Obj_AI_Base target)
         {
-            if (R.IsReady())
+            if (R.Instance.Name == RName && R.IsReady())
             {
-                if (Rstate == 1)
+                if (Q.IsReady())
                 {
-                    if (target.IsValidTarget(R.Range))
-                    {
-                        R.Cast(target);
-                    }
+                    return;
                 }
-                if (Rstate == 2)
+                R.Cast();
+            }
+            if (R.Instance.Name == RRName)
+            {
+                if (Rmode == 0 && target != null && target.IsValidTarget(Q.Range))
                 {
-                    var t = Prediction.GetPrediction(target, 400).CastPosition;
-                    float x = target.MoveSpeed;
-                    float y = x * 400 / 1000;
-                    var pos = target.Position;
-                    if (target.Distance(t) <= y)
-                    {
-                        pos = t;
-                    }
-                    if (target.Distance(t) > y)
-                    {
-                        pos = target.Position.Extend(t, y - 50);
-                    }
-                    if (Player.Distance(pos) <= 600)
-                    {
-                        R.Cast(pos);
-                    }
-                    if (Player.Distance(pos) > 600)
-                    {
-                        if (target.Distance(t) > y)
-                        {
-                            var pos2 = target.Position.Extend(t, y);
-                            if (Player.Distance(pos2) <= 600)
-                            {
-                                R.Cast(pos2);
-                            }
-                            else
-                            {
-                                var prediction = R.GetPrediction(target);
-                                if (prediction.Hitchance >= HitChance.High)
-                                {
-                                    var pos3 = prediction.CastPosition;
-                                    var pos4 = Player.Position.Extend(pos3, 600);
-                                    R.Cast(pos4);
-                                }
-                            }
-                        }
-
-                    }
+                    Q.Cast(target);
+                }
+                if (Rmode == 1 && target != null && target.IsValidTarget(W.Range))
+                {
+                    CastW(target);
+                }
+                if (Rmode == 2 && target != null && target.IsValidTarget(E.Range))
+                {
+                    CastE(target);
+                }
+                if (Rmode == 3 && target != null && target.IsValidTarget(E.Range))
+                {
+                    CastE(target);
+                    CastW(target);
+                    Q.Cast(target);
                 }
             }
         }
@@ -383,172 +329,23 @@ namespace Leblanc
         {
             if (E.IsReady() && !Player.IsDashing())
             {
-                if (!R.IsReady())
-                { E.Cast(target); }
-                if (R.IsReady() && Rstate == 4)
-                { E.Cast(target); }
+                E.Cast(target);
             }
         }
-
-        public static void CheckE(Obj_AI_Base target)
-        {
-            if (E.IsReady())
-            {
-                var prediction = E.GetPrediction(target);
-                if (prediction.Hitchance == HitChance.Collision)
-                {
-                    Ecol = 1;
-                }
-                else
-                {
-                    Ecol = 0;
-                }
-            }
-            if (!E.IsReady())
-            {
-                Ecol = 0;
-            }
-        }
-        public static void CheckR()
-        {
-            string x = Player.Spellbook.GetSpell(SpellSlot.R).Name;          
-            if (x == "LeblancChaosOrbM")
-                Rstate = 1;
-            if (x == "LeblancSlideM")
-                Rstate = 2;
-            if (x == "LeblancSoulShackleM")
-                Rstate = 3;
-            if (x == "LeblancSlideReturnM")
-            {
-                Rstate = 4;
-            }
-            if (Rstate == 1)
-                R = new Spell(SpellSlot.R, Q.Range);
-            if (Rstate == 2)
-            {
-                R = new Spell(SpellSlot.R, W.Range);
-                R.SetSkillshot(0, 70, 1500, false, SkillshotType.SkillshotLine);
-            }
-        }
-        public static void CheckW()
-        {
-            string x = Player.Spellbook.GetSpell(SpellSlot.W).Name;
-            if (x == "LeblancSlideReturn")
-            {
-                Wstate = 2;
-            }
-            else
-                Wstate = 1;
-        }
-
         public static void Combo()
         {
-            if (Selected())
+            if (R.Instance.Name != RRName)
             {
-                var target = TargetSelector.GetSelectedTarget();
-                CheckE(target);
-                float a = Player.Distance(target.Position);
-                if (a > Q.Range && a <= 1200)
-                {
-                    if (WgapCombo && R.IsReady() && Rstate != 4 && W.IsReady() 
-                        && Wstate != 2 && Menu.Item("Use W Combo").GetValue<bool>())
-                    {
-                        W.Cast(Player.Position.Extend(target.Position, 600));
-                    }
-                }
-                else if (a <= Q.Range)
-                {
-                    if (Ecol == 1)
-                    {
-                        if (W.IsReady() && Wstate != 2)
-                        {
-                            useW();
-                            useQ();
-                            useR();
-                            useE();
-                        }
-                        if (!W.IsReady() && Wstate == 1 && R.IsReady() && Rstate == 2)
-                        {
-                            useR();
-                            useQ();
-                            useE();
-                            useW();
-                        }
-                        else
-                        {
-                            useQ();
-                            useR();
-                            useE();
-                            useW();
-                        }
-                    }
-                    if (Ecol == 0)
-                    {
-                        useQ();
-                        useR();
-                        useE();
-                        if (!(R.IsReady() && Rstate == 1))
-                            useW();
-                    }
-                }
+                useE();
+                useQ();
+                useW();
             }
-            else
-            {
-                var target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
-                if (target.IsValidTarget())
-                {
-                    CheckE(target);
-                    if (Ecol == 1)
-                    {
-                        if (W.IsReady() && Wstate != 2)
-                        {
-                            useW();
-                            useQ();
-                            useR();
-                            useE();
-                        }
-                        if (!W.IsReady() && Wstate == 1 && R.IsReady() && Rstate == 2)
-                        {
-                            useR();
-                            useQ();
-                            useE();
-                            useW();
-                        }
-                        else
-                        {
-                            useQ();
-                            useR();
-                            useE();
-                            useW();
-                        }
-                    }
-                    if (Ecol == 0)
-                    {
-                        useQ();
-                        useR();
-                        useE();
-                        if (!(R.IsReady() && Rstate == 1))
-                            useW();
-                    }
-                }
-                else
-                {
-                    var target1 = TargetSelector.GetTarget(1200, TargetSelector.DamageType.Magical);
-                    if (target1 != null)
-                    {
-                        if (WgapCombo && R.IsReady() && Rstate != 4 && W.IsReady() 
-                            && Wstate != 2 && Menu.Item("Use W Combo").GetValue<bool>())
-                        {
-                            W.Cast(Player.Position.Extend(target1.Position, 600));
-                        }
-                    }
-                }
-            }
+            useR();
         }
 
         public static void useQE()
         {
-                Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+            Orbwalking.MoveTo(Game.CursorPos);
                 var target = TargetSelector.GetSelectedTarget();
                 if (target != null && target.IsValidTarget() && !target.IsZombie)
                 {
