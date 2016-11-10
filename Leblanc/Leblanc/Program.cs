@@ -218,7 +218,7 @@ namespace Leblanc
 
         public static void useWBH()
         {
-            if (Wstate == 2)
+            if (W.Instance.Name == W2Name)
                 W.Cast();
         }
 
@@ -283,7 +283,7 @@ namespace Leblanc
 
         public static void CastW(Obj_AI_Base target)
         {
-            if (!W.IsReady() || Wstate != 1)
+            if (!W.IsReady() || W.Instance.Name == W2Name)
                 return;
             var t = Prediction.GetPrediction(target, 400).CastPosition;
             float x = target.MoveSpeed;
@@ -334,7 +334,7 @@ namespace Leblanc
         }
         public static void Combo()
         {
-            if (R.Instance.Name != RRName)
+            if (R.Instance.Name != RRName || R.Instance.Level < 1)
             {
                 useE();
                 useQ();
