@@ -300,7 +300,7 @@ namespace Leblanc
             if (Selected())
             {
                 var target = TargetSelector.GetSelectedTarget();
-                if (target != null && target.IsValidTarget(range) && CanRock(target))
+                if (target != null && target.IsValidTarget(range) && (CanRock(target) || CanRockR()))
                 {
                     CastR(target);
                 }
@@ -309,7 +309,7 @@ namespace Leblanc
             else
             {
                 var target = TargetSelector.GetTarget(range, TargetSelector.DamageType.Magical);
-                if (target != null && target.IsValidTarget(range) && CanRock(target))
+                if (target != null && target.IsValidTarget(range) && (CanRock(target) || CanRockR()))
                 {
                     CastR(target);
                 }
@@ -445,6 +445,10 @@ namespace Leblanc
                 return true;
             if (state == 2)
                 return true;
+            if (GetDamage(target) >= target.Health)
+                return true;
+            if (R.Instance.Name == RRName && R.Instance.Level >= 1)
+                return true;
             if (PassiveCDObjects.Any(x => x.Position.Distance(target.Position) <= 20))
                 return true;
             if (target.HasBuff("LeblancE") && state == 1)
@@ -458,13 +462,42 @@ namespace Leblanc
             {
                 return false;
             }
-            if (LastWPos.IsValid() && LastWPos.Distance(target.Position) <= 350 && Environment.TickCount - LastW <= 500 && state == 0)
+            if (LastWPos.IsValid() && LastWPos.Distance(target.Position) <= 350 && Environment.TickCount - LastW <= 1000 + Game.Ping && state == 0)
                 return false;
             if (state == 1)
             {
                 return false;
             }
             return true;
+        }
+        public static bool CanRockR()
+        {
+            return
+                Q.IsReady()
+                || (W.IsReady() && W.Instance.Name == WName)
+                || E.IsReady();
+        }
+        public static double GetDamage(Obj_AI_Base target)
+        {
+            double damage = 0;
+            if (R.Instance.Name != RRName || R.Instance.Level < 1)
+            {
+                if (Q.IsReady())
+                    damage += Q.GetDamage(target);
+                if (W.IsReady())
+                    damage += W.GetDamage(target);
+                if (Q.IsReady())
+                    damage += E.GetDamage(target) * 2;
+            }
+            if (R.Instance.Name == RName && R.Instance.Level >= 1 && R.IsReady())
+            {
+                damage += Player.CalcDamage(target, Damage.DamageType.Magical, new double[] { 125, 225, 325 }[R.Instance.Level - 1] + 0.5 * Player.TotalMagicalDamage);
+            }
+            if (R.Instance.Name == RRName && R.Instance.Level  >=1)
+            {
+                damage += Player.CalcDamage(target, Damage.DamageType.Magical, new double[] { 125, 225, 325 }[R.Instance.Level - 1] + 0.5 * Player.TotalMagicalDamage);
+            }
+            return damage;
         }
     }
 }
