@@ -65,6 +65,7 @@ namespace Leblanc
             spellMenu.AddItem(new MenuItem("force focus selected", "force focus selected").SetValue(false));
             spellMenu.AddItem(new MenuItem("if selected in :", "if selected in :").SetValue(new Slider(1000, 1000, 1500)));
             spellMenu.AddItem(new MenuItem("QE Selected Target", "QE Selected Target").SetValue(new KeyBind("G".ToCharArray()[0], KeyBindType.Press)));
+            spellMenu.AddItem(new MenuItem("FLeeKey", "FLeeKey").SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press)));
 
             Menu.AddToMainMenu();
 
@@ -85,6 +86,7 @@ namespace Leblanc
         public static int Rmode { get{ return Menu.Item("Rmode").GetValue<StringList>().SelectedIndex; } }
         public static bool WgapCombo { get { return Menu.Item("Use W Combo Gap").GetValue<bool>(); } }
         public static bool WaitPassive => Menu.Item("WaitPassive").GetValue<bool>();
+        public static bool FleeActive => Menu.Item("FLeeKey").GetValue<KeyBind>().Active;
         private static void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
         {
             if (sender.Owner.IsMe && args.Slot == SpellSlot.W)
@@ -119,6 +121,7 @@ namespace Leblanc
         {
             if (Player.IsDead)
                 return;
+            Flee();
             //var target = TargetSelector.GetTarget(1000, TargetSelector.DamageType.Physical);
             //if (target != null)
             //{
@@ -426,6 +429,21 @@ namespace Leblanc
                         E.Cast(target);
                     }
                 } 
+        }
+        public static void Flee()
+        {
+            if (!FleeActive)
+                return;
+            Orbwalking.Orbwalk(null, Game.CursorPos);
+            var pos = Player.Position.To2D().Extend(Game.CursorPos.To2D(), W.Range);
+            if (W.IsReady() && W.Instance.Name != W2Name)
+            {
+                W.Cast(pos);
+            }
+            else if (R.Instance.Name == RName && R.IsReady())
+            {
+                R.Cast();
+            }
         }
         public static int GetPassiveState(Obj_AI_Base target)
         {
